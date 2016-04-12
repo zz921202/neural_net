@@ -88,13 +88,13 @@ y_conv = tf.nn.softmax(tf.matmul(h_fc1_drop, w_fc2) + b_fc2)
 
 # evaluation layer
 
-cross_entropy = -tf.reduce_sum(y_conv * tf.log(y_))
+cross_entropy = -tf.reduce_sum(y_ * tf.log(y_conv))
 train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
 correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 sess.run(tf.initialize_all_variables())
-for i in range(20000):
+for i in range(0):
     batch = mnist.train.next_batch(50)
     if i % 100 == 0:
         train_accuracy = accuracy.eval(
