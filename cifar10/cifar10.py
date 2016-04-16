@@ -368,6 +368,8 @@ def train(total_loss, global_step):
 def maybe_download_and_extract():
     """Download and extract the tarball from Alex's website."""
     dest_directory = FLAGS.cur_data_dir
+    print(FLAGS.cur_data_dir)
+    print(os.path.exists(dest_directory))
     if not os.path.exists(dest_directory):
         os.makedirs(dest_directory)
     filename = DATA_URL.split('/')[-1]
