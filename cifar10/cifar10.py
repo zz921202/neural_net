@@ -279,6 +279,11 @@ def loss(logits, labels):
 
     # The total loss is defined as the cross entropy loss plus all of the weight
     # decay terms (L2 loss).
+
+    correct_prediction = tf.equal(
+        tf.cast(tf.argmax(logits, 1), tf.int64), labels)
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name='running_accuracy')
+    tf.add_to_collection('losses', accuracy)
     return tf.add_n(tf.get_collection('losses'), name='total_loss')
 
 
