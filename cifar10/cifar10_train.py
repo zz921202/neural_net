@@ -45,7 +45,9 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 import cifar10
+import cifar10_eval
 
+Eval_Flag = True
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('train_dir', '/tmp/cifar10_train',
@@ -97,6 +99,9 @@ def train():
 
         summary_writer = tf.train.SummaryWriter(FLAGS.log_dir,
                                                 graph_def=sess.graph_def)
+        if Eval_Flag:
+            cifar10_eval.evaluate()
+            return
 
         for step in xrange(FLAGS.max_steps):
             start_time = time.time()
@@ -126,9 +131,9 @@ def train():
 
 def main(argv=None):  # pylint: disable=unused-argument
     cifar10.maybe_download_and_extract()
-    if tf.gfile.Exists(FLAGS.train_dir):
-        tf.gfile.DeleteRecursively(FLAGS.train_dir)
-    tf.gfile.MakeDirs(FLAGS.train_dir)
+    # if tf.gfile.Exists(FLAGS.train_dir):
+    #     tf.gfile.DeleteRecursively(FLAGS.train_dir)
+    # tf.gfile.MakeDirs(FLAGS.train_dir)
     train()
 
 

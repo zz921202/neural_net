@@ -91,9 +91,9 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
                 threads.extend(qr.create_threads(sess, coord=coord, daemon=True,
                                                  start=True))
 
-            num_iter = int(math.ceil(FLAGS.num_examples / FLAGS.batch_size))
+            num_iter = int(math.ceil(FLAGS.num_examples / FLAGS.cur_batch_size))
             true_count = 0  # Counts the number of correct predictions.
-            total_sample_count = num_iter * FLAGS.batch_size
+            total_sample_count = num_iter * FLAGS.cur_batch_size
             step = 0
             while step < num_iter and not coord.should_stop():
                 predictions = sess.run([top_k_op])
@@ -151,8 +151,8 @@ def evaluate():
 
 def main(argv=None):  # pylint: disable=unused-argument
     cifar10.maybe_download_and_extract()
-    if tf.gfile.Exists(FLAGS.eval_dir):
-        tf.gfile.DeleteRecursively(FLAGS.eval_dir)
+    # if tf.gfile.Exists(FLAGS.eval_dir):
+    #     tf.gfile.DeleteRecursively(FLAGS.eval_dir)
     tf.gfile.MakeDirs(FLAGS.eval_dir)
     evaluate()
 
