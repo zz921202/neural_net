@@ -1,105 +1,139 @@
-# Copyright 2015 Google Inc. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
-
-"""A very simple MNIST classifier, modified to display data in TensorBoard.
-See extensive documentation for the original model at
-http://tensorflow.org/tutorials/mnist/beginners/index.md
-See documentation on the TensorBoard specific pieces at
-http://tensorflow.org/how_tos/summaries_and_tensorboard/index.md
-If you modify this file, please update the excerpt in
-how_tos/summaries_and_tensorboard/index.md.
-"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+from tensorflow.examples.tutorials.mnist import input_data
 import tensorflow as tf
 
-from tensorflow.examples.tutorials.mnist import input_data
+FALGS = tf.app.flags.FLAGS
+tf.app.flags.DEFINE_float('keep_prob', 0.5, """keep probability for dropout""")
 
 
-flags = tf.app.flags
-FLAGS = flags.FLAGS
-flags.DEFINE_boolean('fake_data', False, 'If true, uses fake data '
-                     'for unit testing.')
-flags.DEFINE_integer('max_steps', 1000, 'Number of steps to run trainer.')
-flags.DEFINE_float('learning_rate', 0.01, 'Initial learning rate.')
+def weight_variable(shape):
+    seed_val = tf.truncated_normal(shape, stddev=0.1)
+    return tf.Variable(seed_val)
 
 
-def main(_):
-    # Import data
-    mnist = input_data.read_data_sets('/tmp/data/', one_hot=True,
-                                      fake_data=FLAGS.fake_data)
+def bias_variable(shape):
+    seed_val = tf.constant(0.1, shape=shape)
+    return tf.Variable(seed_val)
 
-    sess = tf.InteractiveSession()
 
-    # Create the model
-    x = tf.placeholder(tf.float32, [None, 784], name='x-input')
-    W = tf.Variable(tf.zeros([784, 10]), name='weights')
-    b = tf.Variable(tf.zeros([10], name='bias'))
+def conv2d(x, W, stride=[1, 1, 1, 1]):
+    return tf.nn.conv2d(x, W, strides=stride, padding='SAME')
 
-    # Use a name scope to organize nodes in the graph visualizer
-    with tf.name_scope('Wx_b'):
-        y = tf.nn.softmax(tf.matmul(x, W) + b)
 
-    # Add summary ops to collect data
-    _ = tf.histogram_summary('weights', W)
-    _ = tf.histogram_summary('biases', b)
-    _ = tf.histogram_summary('y', y)
+def max_pool(x, pool_name, filter_size=[1, 2, 2, 1], strides=[1, 2, 2, 1]):
+    with tf.name_scope(pool_name):
+        out = tf.nn.max_pool(x, filter_size, strides=strides, padding='SAME')
+        variable_summaries(pool_name, out)
+    return out
 
-    # Define loss and optimizer
-    y_ = tf.placeholder(tf.float32, [None, 10], name='y-input')
-    # More name scopes will clean up the graph representation
-    with tf.name_scope('xent'):
-        cross_entropy = -tf.reduce_sum(y_ * tf.log(y))
-        _ = tf.scalar_summary('cross entropy', cross_entropy)
-    with tf.name_scope('train'):
-        train_step = tf.train.GradientDescentOptimizer(
-            FLAGS.learning_rate).minimize(cross_entropy)
 
-    with tf.name_scope('test'):
-        correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
-        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-        _ = tf.scalar_summary('accuracy', accuracy)
+def variable_summaries(name, var):
+    with tf.name_scope("summaries"):
+        mean = tf.reduce_mean(var)
+        tf.scalar_summary('mean/' + name, mean)
+        with tf.name_scope('stddev'):
+            stddev = tf.sqrt(tf.reduce_sum(tf.square(var - mean)))
+        tf.scalar_summary('sttdev/' + name, stddev)
+        tf.scalar_summary('max/' + name, tf.reduce_max(var))
+        tf.scalar_summary('min/' + name, tf.reduce_min(var))
+        tf.histogram_summary(name, var)
 
-    # Merge all the summaries and write them out to /tmp/mnist_logs
-    merged = tf.merge_all_summaries()
-    writer = tf.train.SummaryWriter('/tmp/mnist_logs', sess.graph_def)
-    tf.initialize_all_variables().run()
 
-    # Train the model, and feed in test data and record summaries every 10
-    # steps
+def simple_nn_layer(input_tensor, input_dim, out_dim,
+                    layer_name, dropout=False, stride_size=[1, 1, 1, 1]):
+    """ 
+    input tensor of dimension : batch_size x height x width x channels
+    input_dim : width x height of input filter
+    out_dim : [input_channel, output_channel]
+    layer_name: a string
 
-    for i in range(FLAGS.max_steps):
-        if i % 10 == 0:  # Record summary data and the accuracy
-            if FLAGS.fake_data:
-                batch_xs, batch_ys = mnist.train.next_batch(
-                    100, fake_data=FLAGS.fake_data)
-                feed = {x: batch_xs, y_: batch_ys}
-            else:
-                feed = {x: mnist.test.images, y_: mnist.test.labels}
-            result = sess.run([merged, accuracy], feed_dict=feed)
-            summary_str = result[0]
-            acc = result[1]
-            writer.add_summary(summary_str, i)
-            print('Accuracy at step %s: %s' % (i, acc))
+    return : output tensor
+    """
+
+    with tf.name_scope(layer_name):
+        with tf.name_scope('weights'):
+            w = weight_variable(input_dim + out_dim)
+            variable_summaries(layer_name + '/weights', w)
+        with tf.name_scope('biases'):
+            outb = out_dim[1]
+            b = bias_variable([outb])
+            variable_summaries(layer_name + '/bias', b)
+        with tf.name_scope('activation'):
+            ac = conv2d(input_tensor, w, stride=stride_size) + b
+            variable_summaries(layer_name + '/activation', ac)
+        with tf.name_scope('relu'):
+            out_tensor = tf.nn.relu(ac)
+            variable_summaries(layer_name + '/relu', out_tensor)
+        if dropout:
+            return tf.nn.dropout(out_tensor, FALGS.keep_prob)
+        return out_tensor
+
+
+def simple_fully_connected_layer(input_tensor, feature_len, out_len, layer_name,
+                                 relu=True, dropout=False):
+    with tf.name_scope(layer_name):
+        with tf.name_scope('weights'):
+            w = weight_variable([feature_len, out_len])
+            variable_summaries(layer_name + '/weights', w)
+        with tf.name_scope('biases'):
+            b = bias_variable([out_len])
+            variable_summaries(layer_name + '/bias', b)
+        if relu:
+            with tf.name_scope('relu_activation'):
+                out_tensor = tf.nn.relu(tf.matmul(input_tensor, w) + b)
+                variable_summaries(layer_name + '/relu_ac', out_tensor)
         else:
-            batch_xs, batch_ys = mnist.train.next_batch(
-                100, fake_data=FLAGS.fake_data)
-            feed = {x: batch_xs, y_: batch_ys}
-            sess.run(train_step, feed_dict=feed)
+            with tf.name_scope('activation'):
+                out_tensor = tf.matmul(input_tensor, w) + b
+                variable_summaries(layer_name + '/relu_ac', out_tensor)
+        if dropout:
+            out_tensor = tf.nn.dropout(out_tensor, FALGS.keep_prob)
+        return out_tensor
 
-if __name__ == '__main__':
-    tf.app.run()
+# def cross_entropy_layer()
+# setup the graph
+mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
+sess = tf.InteractiveSession()
+x = tf.placeholder(tf.float32, shape=[None, 784])
+y_ = tf.placeholder(tf.float32, shape=[None, 10])
+
+
+#  ARCHITECHUAL CNN
+
+x_image = tf.reshape(x, [-1, 28, 28, 1])
+
+# conv layer 1
+conv1 = simple_nn_layer(x_image, [5, 5], [1, 32], 'conv1')
+conv1_p = max_pool(conv1, 'conv1_p')
+# conv layer 2
+conv2 = simple_nn_layer(conv1_p, [5, 5], [32, 64], 'conv2')
+conv2_p = max_pool(conv2, 'conv2_p')
+
+# unroll vector
+fc1_flat = tf.reshape(conv2_p, [-1, 7 * 7 * 64])
+
+# 3 fully connected layer
+fc1 = simple_fully_connected_layer(fc1_flat, 7 * 7 * 64, 1024, 'fc1')
+fc2 = simple_fully_connected_layer(fc1, 1024, 10, 'fc2',
+                                   relu=False, dropout=True)
+
+# evaluate the network and train
+y_soft = tf.nn.softmax(fc2)
+cross_entropy = -tf.reduce_sum(y_ * tf.log(y_soft))
+train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+correct_prediction = tf.equal(tf.argmax(y_soft, 1), tf.argmax(y_, 1))
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+
+sess.run(tf.initialize_all_variables())
+for i in range(1000):
+    batch = mnist.train.next_batch(50)
+    if i % 100 == 0:
+        train_accuracy = accuracy.eval(
+            feed_dict={x: batch[0], y_: batch[1]})
+        print('step %d with accuracy %s' % (i, train_accuracy))
+    train_step.run(feed_dict={x: batch[0], y_: batch[1]})
+
+
+FALGS.keep_prob = 1
+print('test accuracy %s' % accuracy.eval(
+    feed_dict={x: mnist.test.images, y_: mnist.test.labels}))
