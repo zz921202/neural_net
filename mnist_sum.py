@@ -112,9 +112,10 @@ conv2_p = max_pool(conv2, 'conv2_p')
 fc1_flat = tf.reshape(conv2_p, [-1, 7 * 7 * 64])
 
 # 3 fully connected layer
-fc1 = simple_fully_connected_layer(fc1_flat, 7 * 7 * 64, 1024, 'fc1')
+fc1 = simple_fully_connected_layer(fc1_flat, 7 * 7 * 64, 1024,
+                                   'fc1', dropout=True)
 fc2 = simple_fully_connected_layer(fc1, 1024, 10, 'fc2',
-                                   relu=False, dropout=True)
+                                   relu=False)
 
 # evaluate the network and train
 y_soft = tf.nn.softmax(fc2)
@@ -125,7 +126,7 @@ accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 
 sess.run(tf.initialize_all_variables())
-for i in range(1000):
+for i in range(10000):
     batch = mnist.train.next_batch(50)
     if i % 100 == 0:
         train_accuracy = accuracy.eval(
