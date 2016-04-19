@@ -142,11 +142,11 @@ def evaluate():
         summary_writer = tf.train.SummaryWriter(FLAGS.eval_dir,
                                                 graph_def=graph_def)
 
-        while True:
-            eval_once(saver, summary_writer, top_k_op, summary_op)
-            if FLAGS.run_once:
-                break
-            time.sleep(FLAGS.eval_interval_secs)
+        # while True:
+        eval_once(saver, summary_writer, top_k_op, summary_op)
+            # if FLAGS.run_once:
+            #     break
+            # time.sleep(FLAGS.eval_interval_secs)
 
 
 def main(argv=None):  # pylint: disable=unused-argument
