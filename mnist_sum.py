@@ -90,25 +90,24 @@ def simple_fully_connected_layer(input_tensor, feature_len, out_len, layer_name,
         return out_tensor
 
 
-# def soft_to_label_accruarcy(
-#         logits, target, layer_name="accuracy", indicator=False):
-#     """NOTE: target should be labels in the format of {0,1,2,3,4}
-#     ! not indicator"""
-#     if indicator:
-#         target = tf.argmax(target, 1)
-#     loss_ave = tf.train.ExponentialMovingAverage(0.9, name='ave')
+def soft_to_label_accruarcy(
+        logits, target, layer_name="accuracy", indicator=False):
+    """NOTE: target should be labels in the format of {0,1,2,3,4}
+    ! not indicator"""
+    if indicator:
+        target = tf.argmax(target, 1)
+    # loss_ave = tf.train.ExponentialMovingAverage(0.9, name='ave')
 
-#     accuracy = tf.Variable(initial_value=tf.zeros([1]))
-#     accuracy_update_op = loss_ave.apply(accuracy)
-#     shadow_acc = loss_ave.average(accuracy)
-#     with tf.name_scope(layer_name):
-#         correct_prediction = tf.equal(tf.cast(tf.argmax(logits, 1), tf.int64),
-#                                       tf.cast(target, tf.int64))
-#         tf.assign(accuracy,
-#                   tf.reduce_mean(tf.cast(correct_prediction, tf.float32)))
-#         tf.scalar_summary('accuracy', accuracy)
-#         tf.scalar_summary('accuracy_ave', shadow_acc)
-#         return accuracy_update_op
+    # accuracy = tf.Variable(initial_value=tf.zeros([1]))
+    # accuracy_update_op = loss_ave.apply(accuracy)
+    # shadow_acc = loss_ave.average(accuracy)
+    # with tf.name_scope(layer_name):
+    correct_prediction = tf.equal(tf.cast(tf.argmax(logits, 1), tf.int64),
+                                  tf.cast(target, tf.int64))
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    tf.scalar_summary('accuracy', accuracy)
+    # tf.scalar_summary('accuracy_ave', shadow_acc)
+    return accuracy
 
 
 def cross_entropy_layer(logits, target, layer_name='cross_entropy', indicator=False):
@@ -161,11 +160,10 @@ y_soft = tf.nn.softmax(fc2)
 cross_entropy = cross_entropy_layer(y_soft, y_, indicator=True)
 train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
 
-# accuracy_update_op = soft_to_label_accruarcy(y_soft,
-#                                              y_, indicator=True)
+accuracy = soft_to_label_accruarcy(y_soft, y_, indicator=True)
 
-correct_prediction = tf.equal(tf.argmax(y_soft, 1), tf.argmax(y_, 1))
-accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+# correct_prediction = tf.equal(tf.argmax(y_soft, 1), tf.argmax(y_, 1))
+# accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 # summary ops
 # makedirs('./mnist_log')
@@ -180,12 +178,12 @@ sess.run(tf.initialize_all_variables())
 
 for i in range(20000):
     batch = mnist.train.next_batch(50)
-    if i % 100 == 0:
+    if i % 1 == 0:
         # sess.run(accuracy_update_op)
         sum_str = summary_op.eval(feed_dict={x: batch[0], y_: batch[1]})
         summary_writer.add_summary(sum_str, i)
-        # accuracy_update_op.eval(
-        #     feed_dict={x: batch[0], y_: batch[1]})
+        train_accuracy = accuracy.eval(
+            feed_dict={x: batch[0], y_: batch[1]})
         train_accuracy = accuracy.eval(
             feed_dict={x: batch[0], y_: batch[1]})
         print('step %d with accuracy %s' % (i, train_accuracy))
