@@ -201,7 +201,7 @@ for i in range(20000):
             feed_dict={x: batch[0], y_: batch[1]})
         print('step %d with accuracy %s' % (i, train_accuracy))
 
-    if i % 1000 == 0:
+    if i % 5000 == 0:
         save_path = saver.save(sess, "./mnist/model%s.ckpt" % i)
         print("Model saved in file: %s" % save_path)
 
