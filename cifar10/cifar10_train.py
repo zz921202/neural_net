@@ -47,7 +47,8 @@ import tensorflow as tf
 import cifar10
 import cifar10_eval
 
-Eval_Flag = True
+RESTORE = True
+Restore_path = "/tmp/cifar10_train/model.ckpt-14000"
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('train_dir', '/tmp/cifar10_train',
@@ -99,9 +100,9 @@ def train():
 
         summary_writer = tf.train.SummaryWriter(FLAGS.log_dir,
                                                 graph_def=sess.graph_def)
-        if Eval_Flag:
-            cifar10_eval.evaluate()
-            return
+        
+        if RESTORE:
+            saver.restore(sess, Restore_path)
 
         for step in xrange(FLAGS.max_steps):
             start_time = time.time()
