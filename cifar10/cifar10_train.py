@@ -47,7 +47,7 @@ import tensorflow as tf
 import cifar10
 import cifar10_eval
 
-Eval_Flag = True
+Eval_Flag = False
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('train_dir', '/tmp/cifar10_train',
@@ -120,7 +120,7 @@ def train():
                 print (format_str % (datetime.now(), step, loss_value,
                                      examples_per_sec, sec_per_batch))
 
-            # if step % 100 == 0:
+            if step % 100 == 0:
                 summary_str = sess.run(summary_op)
                 summary_writer.add_summary(summary_str, step)
             # Save the model checkpoint periodically.
