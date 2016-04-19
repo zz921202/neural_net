@@ -126,7 +126,7 @@ def train():
                 summary_writer.add_summary(summary_str, step)
             # Save the model checkpoint periodically.
             if step % 1000 == 0 or (step + 1) == FLAGS.max_steps:
-                checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
+                checkpoint_path = os.path.join(FLAGS.train_dir, 'model-%s.ckpt' % (step))
                 saver.save(sess, checkpoint_path, global_step=step)
                 cifar10_eval.evaluate()
 
