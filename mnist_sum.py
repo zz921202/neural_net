@@ -178,7 +178,7 @@ sess.run(tf.initialize_all_variables())
 
 for i in range(20000):
     batch = mnist.train.next_batch(50)
-    if i % 1 == 0:
+    if i % 100 == 0:
         # sess.run(accuracy_update_op)
         sum_str = summary_op.eval(feed_dict={x: batch[0], y_: batch[1]})
         summary_writer.add_summary(sum_str, i)
