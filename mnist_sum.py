@@ -4,6 +4,9 @@ from os import makedirs
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_float('keep_prob', 0.5, """keep probability for dropout""")
 
+RESTORE = True
+Restore_path = "./mnist/model100.ckpt"
+
 
 def weight_variable(shape):
     seed_val = tf.truncated_normal(shape, stddev=0.1)
@@ -127,6 +130,7 @@ def detect_dir_and_delete(dir_name):
     tf.gfile.MakeDirs(dir_name)
 
 
+
 # setup the graph
 mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
 sess = tf.InteractiveSession()
@@ -169,12 +173,21 @@ accuracy = soft_to_label_accruarcy(y_soft, y_, indicator=True)
 # makedirs('./mnist_log')
 curdir = './mnist_log'
 detect_dir_and_delete(curdir)
+
+
+saver = tf.train.Saver()
+
 summary_writer = tf.train.SummaryWriter(
     curdir, graph_def=sess.graph_def)
 summary_op = tf.merge_all_summaries()
 
 # initialize all variables
 sess.run(tf.initialize_all_variables())
+
+if RESTORE:
+    saver.restore(sess, Restore_path)
+    print("Model restored.")
+
 
 for i in range(20000):
     batch = mnist.train.next_batch(50)
@@ -187,6 +200,11 @@ for i in range(20000):
         train_accuracy = accuracy.eval(
             feed_dict={x: batch[0], y_: batch[1]})
         print('step %d with accuracy %s' % (i, train_accuracy))
+
+    if i % 1000 == 0:
+        save_path = saver.save(sess, "./mnist/model%s.ckpt" % i)
+        print("Model saved in file: %s" % save_path)
+
     train_step.run(feed_dict={x: batch[0], y_: batch[1]})
 
 
