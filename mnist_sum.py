@@ -4,7 +4,7 @@ from os import makedirs
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_float('keep_prob', 0.5, """keep probability for dropout""")
 
-RESTORE = True
+RESTORE = False
 Restore_path = "./mnist/model100.ckpt"
 
 
